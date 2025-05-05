@@ -83,7 +83,6 @@ class FeedbackModal(discord.ui.Modal, title="Provide Feedback"):
 
         vouch_count = get_total_vouches()
 
-        # Build embed
         embed = discord.Embed(title=f"No. of Vouches: {vouch_count}", color=discord.Color.red())
         embed.add_field(name="Customer", value=self.user.mention, inline=False)
         embed.add_field(name="Product", value=self.product, inline=False)
@@ -101,14 +100,16 @@ class FeedbackModal(discord.ui.Modal, title="Provide Feedback"):
 
 @bot.tree.command(name="vouch", description="Submit a vouch", guild=discord.Object(id=GUILD_ID))
 async def vouch(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)  # Fix for 404 unknown interaction
+    await interaction.response.defer(ephemeral=True)
     await interaction.followup.send("Please select a product:", view=ProductView(interaction.user), ephemeral=True)
 
 @bot.event
 async def on_ready():
     await bot.wait_until_ready()
     try:
-        await bot.tree.sync(guild=discord.Object(id=GUILD_ID))  # Sync to your server only
+        await bot.tree.clear_commands(guild=None)  # Delete all global commands
+        await bot.tree.sync()                      # Sync cleared state globally
+        await bot.tree.sync(guild=discord.Object(id=GUILD_ID))  # Sync only your server
         print(f"✅ Bot is ready. Logged in as {bot.user}")
         await update_bot_status()
     except Exception as e:
