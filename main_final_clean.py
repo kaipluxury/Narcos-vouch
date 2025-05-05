@@ -25,10 +25,24 @@ PRODUCTS = [
     ("shax-cleaner", "Shax-cleaner")
 ]
 
-LOGO_URL = "https://cdn.discordapp.com/attachments/1328282907814531073/1368106724795351102/BD9E3BFA-F422-4AF8-8AF2-349AD4D3E145.png"  # Narcos Sells logo
+LOGO_URL = "https://cdn.discordapp.com/attachments/1328282907814531073/1368117391078651914/5FD03667-7CB1-4655-8CEA-C9F35563A029.png"
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+def get_total_vouches():
+    conn = sqlite3.connect("vouches.db")
+    cursor = conn.cursor()
+    cursor.execute("CREATE TABLE IF NOT EXISTS vouches (customer TEXT, product TEXT, feedback TEXT)")
+    cursor.execute("SELECT COUNT(*) FROM vouches")
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count
+
+async def update_bot_status():
+    count = get_total_vouches()
+    activity = discord.Activity(type=discord.ActivityType.watching, name=f"{count} vouches")
+    await bot.change_presence(activity=activity)
 
 class ProductDropdown(discord.ui.Select):
     def __init__(self, user: discord.User):
@@ -66,8 +80,10 @@ class FeedbackModal(discord.ui.Modal, title="Provide Feedback"):
         conn.commit()
         conn.close()
 
+        vouch_count = get_total_vouches()
+
         # Send embed
-        embed = discord.Embed(title="New Vouch Received", color=discord.Color.purple())
+        embed = discord.Embed(title=f"No. of Vouches: {vouch_count}", color=discord.Color.red())
         embed.add_field(name="Customer", value=self.user.mention, inline=False)
         embed.add_field(name="Product", value=self.product, inline=False)
         embed.add_field(name="Feedback", value=feedback, inline=False)
@@ -78,6 +94,7 @@ class FeedbackModal(discord.ui.Modal, title="Provide Feedback"):
         if channel:
             await channel.send(embed=embed)
 
+        await update_bot_status()
         await interaction.response.send_message("✅ Vouch submitted successfully!", ephemeral=True)
 
 @bot.tree.command(name="vouch", description="Submit a vouch", guild=discord.Object(id=GUILD_ID))
@@ -87,6 +104,7 @@ async def vouch(interaction: discord.Interaction):
 @bot.event
 async def on_ready():
     await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
+    await update_bot_status()
     print(f"✅ Bot is ready. Logged in as {bot.user}")
 
 bot.run(TOKEN)
