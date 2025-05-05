@@ -25,10 +25,10 @@ PRODUCTS = [
     ("shax-cleaner", "Shax-cleaner")
 ]
 
-# Stable working logo URL (rehosted properly on Discord CDN)
 LOGO_URL = "https://cdn.discordapp.com/attachments/1328282907814531073/1368135021256146944/narcos_sells_logo.png"
 
 intents = discord.Intents.default()
+intents.message_content = False
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 def get_total_vouches():
@@ -83,12 +83,13 @@ class FeedbackModal(discord.ui.Modal, title="Provide Feedback"):
 
         vouch_count = get_total_vouches()
 
-        # Send embed
+        # Build embed
         embed = discord.Embed(title=f"No. of Vouches: {vouch_count}", color=discord.Color.red())
         embed.add_field(name="Customer", value=self.user.mention, inline=False)
         embed.add_field(name="Product", value=self.product, inline=False)
         embed.add_field(name="Feedback", value=feedback, inline=False)
         embed.set_thumbnail(url=LOGO_URL)
+        embed.set_image(url=LOGO_URL)  # Big logo
         embed.set_footer(text="Thanks For Vouching | Made By Kai", icon_url=LOGO_URL)
 
         channel = bot.get_channel(CHANNEL_ID)
@@ -98,14 +99,18 @@ class FeedbackModal(discord.ui.Modal, title="Provide Feedback"):
         await update_bot_status()
         await interaction.response.send_message("✅ Vouch submitted successfully!", ephemeral=True)
 
-@bot.tree.command(name="vouch", description="Submit a vouch")
+@bot.tree.command(name="vouch", description="Submit a vouch", guild=discord.Object(id=GUILD_ID))
 async def vouch(interaction: discord.Interaction):
     await interaction.response.send_message("Please select a product:", view=ProductView(interaction.user), ephemeral=True)
 
 @bot.event
 async def on_ready():
-    await bot.tree.sync()  # Global sync to avoid 404 error
-    await update_bot_status()
-    print(f"✅ Bot is ready. Logged in as {bot.user}")
+    await bot.wait_until_ready()
+    try:
+        await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
+        print(f"✅ Bot is ready. Logged in as {bot.user}")
+        await update_bot_status()
+    except Exception as e:
+        print(f"❌ Failed to sync commands: {e}")
 
 bot.run(TOKEN)
