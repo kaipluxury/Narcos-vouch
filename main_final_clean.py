@@ -89,7 +89,7 @@ class FeedbackModal(discord.ui.Modal, title="Provide Feedback"):
         embed.add_field(name="Product", value=self.product, inline=False)
         embed.add_field(name="Feedback", value=feedback, inline=False)
         embed.set_thumbnail(url=LOGO_URL)
-        embed.set_image(url=LOGO_URL)  # Big logo
+        embed.set_image(url=LOGO_URL)
         embed.set_footer(text="Thanks For Vouching | Made By Kai", icon_url=LOGO_URL)
 
         channel = bot.get_channel(CHANNEL_ID)
@@ -101,13 +101,14 @@ class FeedbackModal(discord.ui.Modal, title="Provide Feedback"):
 
 @bot.tree.command(name="vouch", description="Submit a vouch", guild=discord.Object(id=GUILD_ID))
 async def vouch(interaction: discord.Interaction):
-    await interaction.response.send_message("Please select a product:", view=ProductView(interaction.user), ephemeral=True)
+    await interaction.response.defer(ephemeral=True)  # Fix for 404 unknown interaction
+    await interaction.followup.send("Please select a product:", view=ProductView(interaction.user), ephemeral=True)
 
 @bot.event
 async def on_ready():
     await bot.wait_until_ready()
     try:
-        await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
+        await bot.tree.sync(guild=discord.Object(id=GUILD_ID))  # Sync to your server only
         print(f"✅ Bot is ready. Logged in as {bot.user}")
         await update_bot_status()
     except Exception as e:
