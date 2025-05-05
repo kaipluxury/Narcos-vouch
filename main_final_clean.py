@@ -25,7 +25,8 @@ PRODUCTS = [
     ("shax-cleaner", "Shax-cleaner")
 ]
 
-LOGO_URL = "https://cdn.discordapp.com/attachments/1328282907814531073/1368117391078651914/5FD03667-7CB1-4655-8CEA-C9F35563A029.png"
+# Stable working logo URL (rehosted properly on Discord CDN)
+LOGO_URL = "https://cdn.discordapp.com/attachments/1328282907814531073/1368135021256146944/narcos_sells_logo.png"
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -97,13 +98,13 @@ class FeedbackModal(discord.ui.Modal, title="Provide Feedback"):
         await update_bot_status()
         await interaction.response.send_message("✅ Vouch submitted successfully!", ephemeral=True)
 
-@bot.tree.command(name="vouch", description="Submit a vouch", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="vouch", description="Submit a vouch")
 async def vouch(interaction: discord.Interaction):
     await interaction.response.send_message("Please select a product:", view=ProductView(interaction.user), ephemeral=True)
 
 @bot.event
 async def on_ready():
-    await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
+    await bot.tree.sync()  # Global sync to avoid 404 error
     await update_bot_status()
     print(f"✅ Bot is ready. Logged in as {bot.user}")
 
