@@ -3,11 +3,15 @@ from discord.ext import commands
 from discord import app_commands
 import os
 import sqlite3
+from flask import Flask
+from threading import Thread
 
+# Load environment variables
 TOKEN = os.getenv("DISCORD_TOKEN")
 GUILD_ID = int(os.getenv("GUILD_ID"))
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 
+# Product list
 PRODUCTS = [
     ("tr1gg3rb0t", "Tr1ggerbot"),
     ("pvt-redux", "Pvt-Redux"),
@@ -31,6 +35,19 @@ intents = discord.Intents.default()
 intents.message_content = False
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# ---------------- Keep Alive Setup ----------------
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is running!"
+
+def run():
+    app.run(host='0.0.0.0', port=8080)
+
+Thread(target=run).start()
+
+# ---------------- Database & Utility ----------------
 def get_total_vouches():
     conn = sqlite3.connect("vouches.db")
     cursor = conn.cursor()
@@ -45,6 +62,7 @@ async def update_bot_status():
     activity = discord.Activity(type=discord.ActivityType.watching, name=f"{count} vouches")
     await bot.change_presence(activity=activity)
 
+# ---------------- UI Elements ----------------
 class ProductDropdown(discord.ui.Select):
     def __init__(self, user: discord.User):
         self.user = user
@@ -84,9 +102,9 @@ class FeedbackModal(discord.ui.Modal, title="Provide Feedback"):
         vouch_count = get_total_vouches()
 
         embed = discord.Embed(title=f"No. of Vouches: {vouch_count}", color=discord.Color.red())
-        embed.add_field(name="Customer", value=self.user.mention, inline=False)
-        embed.add_field(name="Product", value=self.product, inline=False)
-        embed.add_field(name="Feedback", value=feedback, inline=False)
+        embed.add_field(name="**Customer**", value=self.user.mention, inline=False)
+        embed.add_field(name="**Product**", value=self.product, inline=False)
+        embed.add_field(name="**Feedback**", value=feedback, inline=False)
         embed.set_thumbnail(url=LOGO_URL)
         embed.set_image(url=LOGO_URL)
         embed.set_footer(text="Thanks For Vouching | Made By Kai", icon_url=LOGO_URL)
@@ -98,21 +116,22 @@ class FeedbackModal(discord.ui.Modal, title="Provide Feedback"):
         await update_bot_status()
         await interaction.response.send_message("✅ Vouch submitted successfully!", ephemeral=True)
 
+# ---------------- Slash Command ----------------
 @bot.tree.command(name="vouch", description="Submit a vouch", guild=discord.Object(id=GUILD_ID))
 async def vouch(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     await interaction.followup.send("Please select a product:", view=ProductView(interaction.user), ephemeral=True)
 
+# ---------------- Bot Events ----------------
 @bot.event
 async def on_ready():
     await bot.wait_until_ready()
     try:
-        await bot.tree.clear_commands(guild=None)  # Delete all global commands
-        await bot.tree.sync()                      # Sync cleared state globally
-        await bot.tree.sync(guild=discord.Object(id=GUILD_ID))  # Sync only your server
+        await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
         print(f"✅ Bot is ready. Logged in as {bot.user}")
         await update_bot_status()
     except Exception as e:
-        print(f"❌ Failed to sync commands: {e}")
+        print(f"❌ Command sync failed: {e}")
 
+# ---------------- Run Bot ----------------
 bot.run(TOKEN)
